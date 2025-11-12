@@ -12,6 +12,7 @@ import { PasswordField } from '@nocobase/database';
 import _ from 'lodash';
 import { namespace } from '../preset';
 import { parsedValue } from '@nocobase/utils';
+import { CaptchaService } from './captcha';
 
 export class BasicAuth extends BaseAuth {
   static readonly optionsKeysNotAllowedInEnv = ['emailContentText', 'emailContentHTML', 'emailSubject'];
@@ -31,11 +32,24 @@ export class BasicAuth extends BaseAuth {
       account, // Username or email
       email, // Old parameter, compatible with old api
       password,
+      captcha, // 验证码
     } = ctx.action.params.values || {};
 
     if (!account && !email) {
       ctx.throw(400, ctx.t('Please enter your username or email', { ns: namespace }));
     }
+
+    // 验证验证码
+    if (!captcha) {
+      ctx.throw(400, ctx.t('Please enter the verification code', { ns: namespace }));
+    }
+
+    // 验证验证码是否正确
+    const isValidCaptcha = await CaptchaService.verifyCaptcha(ctx, captcha);
+    if (!isValidCaptcha) {
+      ctx.throw(400, ctx.t('Verification code is incorrect or expired', { ns: namespace }));
+    }
+
     const filter = email
       ? { email }
       : {

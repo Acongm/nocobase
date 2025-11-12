@@ -9,7 +9,7 @@
 
 import { ISchema } from '@formily/react';
 import { SchemaComponent, useAPIClient, useCurrentUserContext, useLazy } from '@nocobase/client';
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useAuthTranslation } from '../locale';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from '@formily/react';
@@ -37,6 +37,55 @@ export const useSignIn = (authenticator: string) => {
       redirect();
     },
   };
+};
+
+// 验证码组件
+const CaptchaComponent = ({ value, onChange }) => {
+  const [captchaSvg, setCaptchaSvg] = useState('');
+  const api = useAPIClient();
+
+  const refreshCaptcha = async () => {
+    try {
+      const response = await api.request({
+        url: 'auth:generateCaptcha',
+        method: 'POST',
+      });
+      setCaptchaSvg(response.data.svg);
+    } catch (error) {
+      console.error('Failed to generate captcha:', error);
+    }
+  };
+
+  useEffect(() => {
+    refreshCaptcha();
+  }, []);
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <input
+        type="text"
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="验证码"
+        style={{ flex: 1, padding: '8px', border: '1px solid #d9d9d9', borderRadius: '4px' }}
+        maxLength={4}
+      />
+      <div
+        style={{
+          width: '120px',
+          height: '40px',
+          border: '1px solid #d9d9d9',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+        onClick={refreshCaptcha}
+        dangerouslySetInnerHTML={{ __html: captchaSvg }}
+      />
+    </div>
+  );
 };
 
 const getPasswordForm = ({ showForgotPassword }: { showForgotPassword?: boolean }): ISchema => ({
@@ -68,6 +117,20 @@ const getPasswordForm = ({ showForgotPassword }: { showForgotPassword?: boolean 
       required: true,
       'x-decorator': 'FormItem',
       'x-component-props': { placeholder: '{{t("Password")}}', style: {}, showForgotPassword },
+    },
+    captcha: {
+      type: 'string',
+      'x-component': 'CaptchaComponent',
+      required: true,
+      'x-decorator': 'FormItem',
+      'x-validator': `{{(value) => {
+        if (!value) {
+          return t("Please enter the verification code");
+        }
+        if (value.length !== 4) {
+          return t("Verification code must be 4 characters");
+        }
+      }}}`,
     },
     actions: {
       type: 'void',
@@ -119,6 +182,7 @@ const getPasswordForm = ({ showForgotPassword }: { showForgotPassword?: boolean 
     },
   },
 });
+
 export const SignInForm = (props: { authenticator: Authenticator }) => {
   const { t } = useAuthTranslation();
   const authenticator = props.authenticator;
@@ -131,10 +195,18 @@ export const SignInForm = (props: { authenticator: Authenticator }) => {
   const useBasicSignIn = () => {
     return useSignIn(name);
   };
+
   return (
     <SchemaComponent
       schema={getPasswordForm({ showForgotPassword: !!options?.enableResetPassword })}
-      scope={{ useBasicSignIn, allowSignUp, signUpLink, t, authenticator }}
+      scope={{
+        useBasicSignIn,
+        allowSignUp,
+        signUpLink,
+        t,
+        authenticator,
+        CaptchaComponent,
+      }}
     />
   );
 };

@@ -11,8 +11,14 @@
 import { Context, Next } from '@nocobase/actions';
 import { PasswordField } from '@nocobase/database';
 import { namespace } from '../../preset';
+import { CaptchaService } from '../captcha';
 
 export default {
+  generateCaptcha: async (ctx: Context, next: Next) => {
+    const captcha = await CaptchaService.generateCaptcha(ctx);
+    ctx.body = captcha;
+    await next();
+  },
   lostPassword: async (ctx: Context, next: Next) => {
     ctx.body = await ctx.auth.lostPassword();
     await next();

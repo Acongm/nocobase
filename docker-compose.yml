@@ -1,80 +1,14 @@
-version: "3"
-networks:
-  nocobase:
-    driver: bridge
+version: '3'
 services:
-  verdaccio:
-    image: verdaccio/verdaccio
-    networks:
-      - nocobase
-    environment:
-      VERDACCIO_PORT: ${VERDACCIO_PORT}
-    restart: always
-    ports:
-      - "${VERDACCIO_PORT}:${VERDACCIO_PORT}"
-  mysql:
-    image: mysql:8
-    environment:
-      MYSQL_DATABASE: ${DB_DATABASE}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-    restart: always
-    ports:
-      - "${DB_MYSQL_PORT}:3306"
-    networks:
-      - nocobase
-  kingbase:
-    image: registry.cn-shanghai.aliyuncs.com/nocobase/kingbase:v009r001c001b0030_single_x86
-    platform: linux/amd64
-    restart: always
-    privileged: true
-    networks:
-      - nocobase
-    ports:
-      - "${DB_KINGBASE_PORT}:54321"
-    environment:
-      ENABLE_CI: no
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_MODE: pg
-      NEED_START: yes
-    command: ["/usr/sbin/init"]
-    volumes:
-      - ./storage/db/kingbase:/home/kingbase/userdata
   postgres:
-    image: postgres:latest
-    restart: always
-    networks:
-      - nocobase
-    command: postgres -c wal_level=logical
-    ports:
-      - "${DB_POSTGRES_PORT}:5432"
-    volumes:
-      - ./storage/db/postgres/backups:/backups
+    image: postgres:14                # 稳定版本，兼容 NocoBase[4,12](@ref)
+    container_name: nocobase_db
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_DB: ${DB_DATABASE}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-  adminer:
-    image: nocobase/adminer
+      POSTGRES_USER: nocobase
+      POSTGRES_PASSWORD: nocobase
+      POSTGRES_DB: nocobase
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data  # 数据持久化[9,11](@ref)
+    ports:
+      - "5432:5432"                   # 暴露端口给宿主机
     restart: always
-    networks:
-      - nocobase
-    ports:
-      - ${ADMINER_PORT}:8080
-    volumes:
-      - ./:/var/www/app
-  nocobase:
-    image: node:16-stretch-slim
-    networks:
-      - nocobase
-    command: [ "yarn", "start" ]
-    working_dir: /app
-    env_file: ./.env
-    volumes:
-      - ./:/app
-    expose:
-      - ${APP_PORT}
-    ports:
-      - "${APP_PORT}:${APP_PORT}"

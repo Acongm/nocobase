@@ -234,7 +234,7 @@ export default class PluginUsersServer extends Plugin {
     const { INIT_ROOT_NICKNAME, INIT_ROOT_PASSWORD, INIT_ROOT_EMAIL, INIT_ROOT_USERNAME } = process.env;
     const {
       rootEmail = INIT_ROOT_EMAIL || 'admin@nocobase.com',
-      rootPassword = INIT_ROOT_PASSWORD || 'admin123',
+      rootPassword = INIT_ROOT_PASSWORD || 'NocoBase@2024!',
       rootNickname = INIT_ROOT_NICKNAME || 'Super Admin',
       rootUsername = INIT_ROOT_USERNAME || 'nocobase',
     } = options.users || options?.cliArgs?.[0] || {};
